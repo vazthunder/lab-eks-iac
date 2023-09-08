@@ -1,0 +1,50 @@
+---
+
+project: myproj
+namespace: myproj
+
+app:
+  tier: app
+  image: ""
+  imagePullPolicy: Always
+  replicas: 2
+  service:
+    port: 80
+    targetPort: 3000
+    type: ClusterIP
+  ingress:
+    host: myapp.local
+    path: /
+  requests:
+    cpu: 0.5
+    ram: 1Gi
+  limits:
+    cpu: 1
+    ram: 2Gi
+  hpa:
+    min: 2
+    max: 3
+    cpuTarget: 80
+  livenessProbe:
+    enabled: true
+    path: /
+    port: 3000
+    initialDelaySeconds: 30
+    periodSeconds: 5
+    timeoutSeconds: 5
+    successThreshold: 1
+    failureThreshold: 5
+  readinessProbe:
+    enabled: true
+    path: /
+    port: 3000
+    initialDelaySeconds: 60
+    periodSeconds: 5
+    timeoutSeconds: 5
+    successThreshold: 1
+    failureThreshold: 3
+  envs:
+    - name: NODE_ENV
+      value: production
+
+...

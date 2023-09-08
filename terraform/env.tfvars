@@ -1,0 +1,5 @@
+project         = ""
+env             = ""
+region          = ""
+code_repository = ""
+code_branch     = ""
