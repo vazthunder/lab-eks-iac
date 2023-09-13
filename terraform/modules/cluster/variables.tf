@@ -1,0 +1,17 @@
+variable "project"              { type = string }
+variable "env"                  { type = string }
+variable "vpc_id"               { type = string }
+variable "cidr_vpc"             { type = string }
+variable "cidr_cluster"         { type = string }
+variable "worker_instance_type" { type = string }
+variable "worker_capacity_type" { type = string }
+variable "worker_storage_size"  { type = string }
+variable "worker_initial_size"  { type = string }
+variable "worker_max_size"      { type = string }
+variable "worker_min_size"      { type = string }
+variable "key_name"             { type = string }
+variable "subnet-public-a_id"   { type = string }
+variable "subnet-public-b_id"   { type = string }
+variable "subnet-private-a_id"  { type = string }
+variable "subnet-private-b_id"  { type = string }
+variable "bastion-sg_id"        { type = string }

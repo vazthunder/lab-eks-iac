@@ -33,10 +33,4 @@ echo -e "\n[+] Deploying environment...\n"
 docker run --rm -ti -v $(pwd)/.aws:/root/.aws -v $(pwd):/terraform -w /terraform \
     hashicorp/terraform apply $ENVIRONMENT.tfplan
 
-echo -e "\n[+] Generate EKS kubeconfig...\n"
-docker run --rm -ti -v $(pwd)/.aws:/root/.aws -v $(pwd):/aws amazon/aws-cli \
-    eks update-kubeconfig \
-        --name "$PROJECT_NAME-cluster-$ENVIRONMENT" \
-        --kubeconfig .kube/config
-
 echo -e "\n[+] Finished.\n"
