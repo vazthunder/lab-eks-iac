@@ -6,6 +6,9 @@ provider "aws" { }
 
 data "aws_caller_identity" "current" { }
 
+locals { account_id = data.aws_caller_identity.current.account_id }
+
+
 resource "aws_iam_role" "master-role" {
   name = "${var.project}-${var.env}-eks-master-role"
 
@@ -15,9 +18,11 @@ resource "aws_iam_role" "master-role" {
       {
         Action = "sts:AssumeRole",
         Principal = {
-          Service = "ec2.amazonaws.com",
-          Service = "codebuild.amazonaws.com",
-          AWS = "${data.aws_caller_identity.current.arn}"
+          Service = "ec2.amazonaws.com"
+          AWS = [ 
+            "${data.aws_caller_identity.current.arn}", 
+            "arn:aws:iam::${local.account_id}:role/${var.project}-${var.env}-codebuild-role" 
+          ]
         },
         Effect = "Allow"
       }
@@ -88,8 +93,9 @@ module "bastion" {
 module "registry" {
   source = "./modules/registry"
   
-  project = var.project
-  env     = var.env
+  project        = var.project
+  env            = var.env
+  build_app_name = var.build_app_name
 }
 
 module "cluster" {
@@ -126,10 +132,9 @@ module "cicd" {
   vpc_id              = module.network.vpc_id
   subnet-private-a_id = module.network.subnet-private-a_id
   subnet-private-b_id = module.network.subnet-private-b_id
-  master_role_name    = aws_iam_role.master-role.name
-  code_source         = var.code_source
-  code_repository     = var.code_repository
-  code_branch         = var.code_branch
+  master_role_arn     = aws_iam_role.master-role.arn
+  build_app_name      = var.build_app_name
+  build_source_url    = var.build_source_url
   build_compute_type  = var.build_compute_type
   build_image         = var.build_image
   build_timeout       = var.build_timeout
