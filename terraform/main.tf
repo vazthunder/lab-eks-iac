@@ -19,11 +19,22 @@ resource "aws_iam_role" "master-role" {
         Action = "sts:AssumeRole",
         Principal = {
           Service = "ec2.amazonaws.com"
-          AWS = [ 
-            "${data.aws_caller_identity.current.arn}", 
-            "arn:aws:iam::${local.account_id}:role/${var.project}-${var.env}-codebuild-role" 
-          ]
         },
+        Effect = "Allow"
+      },
+      {
+        Action = "sts:AssumeRole",
+        Principal = {
+          AWS = "arn:aws:iam::${local.account_id}:root"
+        },
+        Condition = {
+          StringLike = {
+            "aws:PrincipalArn" = [
+              "${data.aws_caller_identity.current.arn}",
+              "arn:aws:iam::${local.account_id}:role/${var.project}-${var.env}-codebuild-role"
+            ]
+          }
+        }
         Effect = "Allow"
       }
     ]

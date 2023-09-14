@@ -1,8 +1,12 @@
 #!/bin/bash -ex
 
+# docker
+curl -fsSL https://get.docker.com -o get-docker.sh
+sudo bash get-docker.sh
+sudo usermod -aG docker admin
+
 # aws-cli
-sudo apt update
-sudo apt install python3-pip -y
+sudo apt install -y python3-pip
 sudo pip3 install --upgrade awscli
 
 # aws-iam-authenticator

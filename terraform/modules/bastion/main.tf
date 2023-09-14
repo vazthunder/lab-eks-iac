@@ -36,6 +36,7 @@ resource "aws_instance" "bastion" {
   vpc_security_group_ids  = [ aws_security_group.bastion-sg.id ]
   ebs_optimized           = true
   iam_instance_profile    = aws_iam_instance_profile.bastion-profile.name
+  user_data_base64        = filebase64("${path.module}/userdata.sh")
 
   credit_specification {
     cpu_credits           = "standard"
