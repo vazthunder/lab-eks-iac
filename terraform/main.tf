@@ -1,78 +1,4 @@
-terraform {
-  backend "s3" { }
-}
-
-provider "aws" { }
-
-data "aws_caller_identity" "current" { }
-
-locals { account_id = data.aws_caller_identity.current.account_id }
-
-
-resource "aws_iam_role" "master-role" {
-  name = "${var.project}-${var.env}-eks-master-role"
-
-  assume_role_policy = jsonencode({
-    Version = "2012-10-17",
-    Statement = [
-      {
-        Action = "sts:AssumeRole",
-        Principal = {
-          Service = "ec2.amazonaws.com"
-        },
-        Effect = "Allow"
-      },
-      {
-        Action = "sts:AssumeRole",
-        Principal = {
-          AWS = "arn:aws:iam::${local.account_id}:root"
-        },
-        Condition = {
-          StringLike = {
-            "aws:PrincipalArn" = [
-              "${data.aws_caller_identity.current.arn}",
-              "arn:aws:iam::${local.account_id}:role/${var.project}-${var.env}-codebuild-role"
-            ]
-          }
-        }
-        Effect = "Allow"
-      }
-    ]
-  })
-
-  inline_policy {
-    name   = "${var.project}-${var.env}-eks-master-policy"
-    policy = jsonencode({
-      Version = "2012-10-17",
-      Statement = [
-        {
-          Effect = "Allow",
-          Action = "eks:*",
-          Resource = "*"
-        },
-        {
-          Effect = "Allow",
-          Action = "ecr:*",
-          Resource = "*"
-        },
-        {
-          Effect = "Allow",
-          Action = "iam:PassRole",
-          Resource = "arn:aws:iam::*:role/${var.project}-${var.env}-eks-cluster-role"
-        }
-      ]
-    })
-  }
-}
-
-provider "aws" {
-  alias   = "assume-master-role"
-
-  assume_role {
-    role_arn = aws_iam_role.master-role.arn
-  }
-}
-
+### Static resources
 
 module "network" {
   source = "./modules/network"
@@ -96,17 +22,9 @@ module "bastion" {
   bastion_instance_type = var.bastion_instance_type
   bastion_storage_size  = var.bastion_storage_size
   key_name              = var.key_name
-  master_role_name      = aws_iam_role.master-role.name
   vpc_id                = module.network.vpc_id
   subnet-public-a_id    = module.network.subnet-public-a_id
-}
-
-module "registry" {
-  source = "./modules/registry"
-  
-  project        = var.project
-  env            = var.env
-  build_app_name = var.build_app_name
+  master-role_name      = aws_iam_role.master-role.name
 }
 
 module "cluster" {
@@ -135,18 +53,33 @@ module "cluster" {
   bastion-sg_id        = module.bastion.bastion-sg_id
 }
 
-module "cicd" {
-  source = "./modules/cicd"
+
+### Dynamic resources
+
+module "repo_app" {
+  source = "./modules/registry"
   
+  project        = var.project
+  env            = var.env
+  build_app_name = "app"
+}
+
+module "build_app" {
+  source = "./modules/build"
+
   project             = var.project
   env                 = var.env
   vpc_id              = module.network.vpc_id
   subnet-private-a_id = module.network.subnet-private-a_id
   subnet-private-b_id = module.network.subnet-private-b_id
-  master_role_arn     = aws_iam_role.master-role.arn
-  build_app_name      = var.build_app_name
-  build_source_url    = var.build_source_url
-  build_compute_type  = var.build_compute_type
-  build_image         = var.build_image
-  build_timeout       = var.build_timeout
+  codebuild-sg_id     = aws_security_group.codebuild-sg.id
+  codebuild-role_arn  = aws_iam_role.codebuild-role.arn
+  master-role_arn     = aws_iam_role.master-role.arn
+
+  build_app_name      = "app"
+  build_branch        = "dev"
+  build_source_url    = "https://github.com/vazthunder/myproj-app"
+  build_compute_type  = "BUILD_GENERAL1_SMALL"
+  build_image         = "aws/codebuild/standard:7.0"
+  build_timeout       = "20"
 }

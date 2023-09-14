@@ -1,0 +1,156 @@
+terraform {
+  backend "s3" { }
+}
+
+provider "aws" { }
+
+data "aws_caller_identity" "current" { }
+
+locals { account_id = data.aws_caller_identity.current.account_id }
+
+
+resource "aws_iam_role" "master-role" {
+  name = "${var.project}-${var.env}-eks-master-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [
+      {
+        Action = "sts:AssumeRole",
+        Principal = {
+          Service = "ec2.amazonaws.com"
+        },
+        Effect = "Allow"
+      },
+      {
+        Action = "sts:AssumeRole",
+        Principal = {
+          AWS = "arn:aws:iam::${local.account_id}:root"
+        },
+        Condition = {
+          StringLike = {
+            "aws:PrincipalArn" = [
+              "${data.aws_caller_identity.current.arn}",
+              "arn:aws:iam::${local.account_id}:role/${var.project}-${var.env}-codebuild-role"
+            ]
+          }
+        }
+        Effect = "Allow"
+      }
+    ]
+  })
+
+  inline_policy {
+    name   = "${var.project}-${var.env}-eks-master-policy"
+    policy = jsonencode({
+      Version = "2012-10-17",
+      Statement = [
+        {
+          Effect = "Allow",
+          Action = "eks:*",
+          Resource = "*"
+        },
+        {
+          Effect = "Allow",
+          Action = "ecr:*",
+          Resource = "*"
+        },
+        {
+          Effect = "Allow",
+          Action = "iam:PassRole",
+          Resource = "arn:aws:iam::${local.account_id}:role/${var.project}-${var.env}-eks-cluster-role"
+        }
+      ]
+    })
+  }
+}
+
+provider "aws" {
+  alias   = "assume-master-role"
+
+  assume_role {
+    role_arn = aws_iam_role.master-role.arn
+  }
+}
+
+
+### Base resources for CodeBuild
+
+resource "aws_security_group" "codebuild-sg" {
+  name          = "${var.project}-${var.env}-codebuild-sg"
+  vpc_id        = module.network.vpc_id
+  description   = "${var.project}-${var.env}-codebuild-sg"
+
+  ingress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = -1
+    cidr_blocks = [ "0.0.0.0/0" ]
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = -1
+    cidr_blocks = [ "0.0.0.0/0" ]
+  }
+
+  tags = {
+    Name  = "${var.project}-${var.env}-codebuild-sg"
+    Group = "${var.project}"
+  }
+}
+
+
+resource "aws_iam_role" "codebuild-role" {
+  name = "${var.project}-${var.env}-codebuild-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [{
+      Action = "sts:AssumeRole"
+      Effect = "Allow"
+      Principal = {
+        Service = "codebuild.amazonaws.com"
+      }
+    }]
+  })
+
+  inline_policy {
+    name   = "${var.project}-${var.env}-codebuild-policy"
+
+    policy = jsonencode({
+      Version = "2012-10-17"
+      Statement = [
+        {
+          Effect = "Allow"
+          Action = [
+            "logs:CreateLogGroup",
+            "logs:CreateLogStream",
+            "logs:PutLogEvents"
+          ]
+          Resource = "*"
+        },
+        {
+          Effect = "Allow"
+          Action = [
+            "ec2:CreateNetworkInterface",
+            "ec2:CreateNetworkInterfacePermission",
+            "ec2:DescribeDhcpOptions",
+            "ec2:DescribeNetworkInterfaces",
+            "ec2:DeleteNetworkInterface",
+            "ec2:DescribeSubnets",
+            "ec2:DescribeSecurityGroups",
+            "ec2:DescribeVpcs"
+          ]
+          Resource = "*"
+        },
+        {
+          Effect = "Allow"
+          Action = "sts:AssumeRole"
+          Resource = "arn:aws:iam::${local.account_id}:role/${var.project}-${var.env}-eks-master-role"
+        }
+      ]
+    })
+  }
+}

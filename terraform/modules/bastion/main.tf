@@ -25,7 +25,7 @@ resource "aws_security_group" "bastion-sg" {
 
 resource "aws_iam_instance_profile" "bastion-profile" {
   name = "${var.project}-${var.env}-bastion-profile"
-  role = var.master_role_name
+  role = var.master-role_name
 }
 
 resource "aws_instance" "bastion" {
