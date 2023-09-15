@@ -4,10 +4,24 @@ resource "aws_security_group" "cluster-sg" {
   description   = "${var.project}-${var.env}-cluster-sg"
 
   ingress {
+    from_port       = 22
+    to_port         = 22
+    protocol        = "tcp"
+    security_groups = [ var.bastion-sg_id ]
+  }
+
+  ingress {
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
+    cidr_blocks = [ var.cidr_vpc ]
+  }
+
+  ingress {
     from_port   = 0
     to_port     = 0
     protocol    = -1
-    cidr_blocks = [ var.cidr_vpc ]
+    self        = true
   }
 
   egress {
@@ -20,6 +34,9 @@ resource "aws_security_group" "cluster-sg" {
   tags = {
     Name  = "${var.project}-${var.env}-cluster-sg"
     Group = "${var.project}"
+
+    # EKS - Karpenter
+    "karpenter.sh/discovery" = "${var.project}-${var.env}-cluster"
   }
 }
 
@@ -76,6 +93,16 @@ resource "aws_eks_cluster" "main" {
     Name  = "${var.project}-${var.env}-cluster"
     Group = "${var.project}"
   }
+}
+
+data "tls_certificate" "eks" {
+  url = aws_eks_cluster.main.identity[0].oidc[0].issuer
+}
+
+resource "aws_iam_openid_connect_provider" "eks-oidc-provider" {
+  client_id_list  = [ "sts.amazonaws.com" ]
+  thumbprint_list = [ data.tls_certificate.eks.certificates[0].sha1_fingerprint ]
+  url             = aws_eks_cluster.main.identity[0].oidc[0].issuer
 }
 
 resource "aws_cloudwatch_log_group" "eks-log-group" {

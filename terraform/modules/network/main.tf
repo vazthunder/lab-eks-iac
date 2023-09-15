@@ -162,6 +162,7 @@ resource "aws_subnet" "subnet-private-a" {
 
     # EKS-specific
     "kubernetes.io/cluster/${var.project}-${var.env}-cluster" = "shared"
+    "karpenter.sh/discovery" = "${var.project}-${var.env}-cluster"
   }
 }
 
@@ -176,6 +177,7 @@ resource "aws_subnet" "subnet-private-b" {
 
     # EKS-specific
     "kubernetes.io/cluster/${var.project}-${var.env}-cluster" = "shared"
+    "karpenter.sh/discovery" = "${var.project}-${var.env}-cluster"
   }
 }
 

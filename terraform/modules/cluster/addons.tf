@@ -38,12 +38,12 @@ resource "aws_eks_addon" "ebs-driver" {
   depends_on = [ aws_eks_node_group.worker ]
 }
 
-resource "aws_eks_addon" "efs-driver" {
-  cluster_name                = aws_eks_cluster.main.name
-  addon_name                  = "aws-efs-csi-driver"
-  addon_version               = "v1.5.8-eksbuild.1"
-  resolve_conflicts_on_create = "OVERWRITE"
-  resolve_conflicts_on_update = "PRESERVE"
+# resource "aws_eks_addon" "efs-driver" {
+#   cluster_name                = aws_eks_cluster.main.name
+#   addon_name                  = "aws-efs-csi-driver"
+#   addon_version               = "v1.5.8-eksbuild.1"
+#   resolve_conflicts_on_create = "OVERWRITE"
+#   resolve_conflicts_on_update = "PRESERVE"
 
-  depends_on = [ aws_eks_node_group.worker ]
-}
+#   depends_on = [ aws_eks_node_group.worker ]
+# }
