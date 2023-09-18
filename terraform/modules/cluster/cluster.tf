@@ -1,7 +1,7 @@
-resource "aws_security_group" "cluster-sg" {
-  name          = "${var.project}-${var.env}-cluster-sg"
+resource "aws_security_group" "eks-cluster" {
+  name          = "${var.project}-${var.env}-eks-cluster"
   vpc_id        = var.vpc_id
-  description   = "${var.project}-${var.env}-cluster-sg"
+  description   = "${var.project}-${var.env}-eks-cluster"
 
   ingress {
     from_port       = 22
@@ -32,16 +32,15 @@ resource "aws_security_group" "cluster-sg" {
   }
 
   tags = {
-    Name  = "${var.project}-${var.env}-cluster-sg"
-    Group = "${var.project}"
+    Group = "${var.project}-${var.env}"
 
     # EKS - Karpenter
     "karpenter.sh/discovery" = "${var.project}-${var.env}-cluster"
   }
 }
 
-resource "aws_iam_role" "eks-cluster-role" {
-  name = "${var.project}-${var.env}-eks-cluster-role"
+resource "aws_iam_role" "eks-cluster" {
+  name = "${var.project}-${var.env}-eks-cluster"
 
   assume_role_policy = jsonencode({
     Statement = [{
@@ -55,27 +54,27 @@ resource "aws_iam_role" "eks-cluster-role" {
   })
 }
 
-resource "aws_iam_role_policy_attachment" "eks-cluster-policy" {
+resource "aws_iam_role_policy_attachment" "eks-cluster" {
   policy_arn = "arn:aws:iam::aws:policy/AmazonEKSClusterPolicy"
-  role       = aws_iam_role.eks-cluster-role.name
+  role       = aws_iam_role.eks-cluster.name
 }
 
-resource "aws_iam_role_policy_attachment" "eks-service-policy" {
+resource "aws_iam_role_policy_attachment" "eks-service" {
   policy_arn = "arn:aws:iam::aws:policy/AmazonEKSServicePolicy"
-  role       = aws_iam_role.eks-cluster-role.name
+  role       = aws_iam_role.eks-cluster.name
 }
 
 resource "aws_eks_cluster" "main" {
   provider                  = aws.assume-master-role
   name                      = "${var.project}-${var.env}-cluster"
-  role_arn                  = aws_iam_role.eks-cluster-role.arn
+  role_arn                  = aws_iam_role.eks-cluster.arn
   enabled_cluster_log_types = ["api", "audit", "authenticator", "scheduler", "controllerManager"]
 
   vpc_config {
     endpoint_private_access = true
     endpoint_public_access  = false 
     subnet_ids              = [ var.subnet-private-a_id, var.subnet-private-b_id ]
-    security_group_ids      = [ aws_security_group.cluster-sg.id ]
+    security_group_ids      = [ aws_security_group.eks-cluster.id ]
   }
 
   kubernetes_network_config {
@@ -84,28 +83,27 @@ resource "aws_eks_cluster" "main" {
 
   # Ensure that IAM Role permissions are created before and deleted after EKS Cluster handling.
   depends_on = [
-    aws_cloudwatch_log_group.eks-log-group,
-    aws_iam_role_policy_attachment.eks-cluster-policy,
-    aws_iam_role_policy_attachment.eks-service-policy
+    aws_cloudwatch_log_group.eks-cluster,
+    aws_iam_role_policy_attachment.eks-cluster,
+    aws_iam_role_policy_attachment.eks-service
   ]
 
   tags = {
-    Name  = "${var.project}-${var.env}-cluster"
-    Group = "${var.project}"
+    Group = "${var.project}-${var.env}"
   }
 }
 
-data "tls_certificate" "eks" {
+data "tls_certificate" "eks-cluster" {
   url = aws_eks_cluster.main.identity[0].oidc[0].issuer
 }
 
-resource "aws_iam_openid_connect_provider" "eks-oidc-provider" {
+resource "aws_iam_openid_connect_provider" "eks-cluster" {
   client_id_list  = [ "sts.amazonaws.com" ]
-  thumbprint_list = [ data.tls_certificate.eks.certificates[0].sha1_fingerprint ]
+  thumbprint_list = [ data.tls_certificate.eks-cluster.certificates[0].sha1_fingerprint ]
   url             = aws_eks_cluster.main.identity[0].oidc[0].issuer
 }
 
-resource "aws_cloudwatch_log_group" "eks-log-group" {
-  name              = "/aws/eks/${var.project}-${var.env}-cluster/main"
+resource "aws_cloudwatch_log_group" "eks-cluster" {
+  name              = "/aws/eks/${var.project}-${var.env}-cluster"
   retention_in_days = 14
 }

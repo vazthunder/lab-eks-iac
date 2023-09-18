@@ -1,5 +1,5 @@
-resource "aws_ecr_repository" "image-repo" {
-  name                 = "${var.project}-${var.env}-${var.build_app_name}"
+resource "aws_ecr_repository" "private" {
+  name                 = "${var.project}-${var.env}-${var.app_name}"
   image_tag_mutability = "MUTABLE"
 
   image_scanning_configuration {
@@ -7,7 +7,6 @@ resource "aws_ecr_repository" "image-repo" {
   }
 
   tags = {
-    Name  = "${var.project}-app-${var.env}"
-    Group = "${var.project}"
+    Group = "${var.project}-${var.env}"
   }
 }

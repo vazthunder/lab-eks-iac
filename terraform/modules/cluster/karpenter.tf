@@ -1,5 +1,5 @@
 resource "aws_iam_role" "karpenter-role" {
-  name = "${var.project}-${var.env}-karpenter-role"
+  name = "${var.project}-${var.env}-karpenter"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17",
@@ -7,7 +7,7 @@ resource "aws_iam_role" "karpenter-role" {
       Action = "sts:AssumeRoleWithWebIdentity"
       Effect = "Allow"
       Principal = {
-        Federated = "${aws_iam_openid_connect_provider.eks-oidc-provider.arn}"
+        Federated = "${aws_iam_openid_connect_provider.eks-cluster.arn}"
       }
       Condition = {
         StringEquals = {
@@ -18,7 +18,7 @@ resource "aws_iam_role" "karpenter-role" {
   })
 
   inline_policy {
-    name   = "${var.project}-${var.env}-karpenter-policy"
+    name   = "${var.project}-${var.env}-karpenter"
 
     policy = jsonencode({
       Version = "2012-10-17"
@@ -31,7 +31,7 @@ resource "aws_iam_role" "karpenter-role" {
         {
           Effect = "Allow"
           Action = "iam:PassRole"
-          Resource = "${aws_iam_role.eks-worker-role.arn}"
+          Resource = "${aws_iam_role.eks-worker.arn}"
         },
         {
           Effect = "Allow"
@@ -41,7 +41,7 @@ resource "aws_iam_role" "karpenter-role" {
             "sqs:GetQueueAttributes", 
             "sqs:ReceiveMessage"
           ]
-          Resource = "${aws_sqs_queue.karpenter-queue.arn}"
+          Resource = "${aws_sqs_queue.karpenter.arn}"
         },
         {
           Effect = "Allow"
@@ -74,7 +74,7 @@ resource "aws_iam_role" "karpenter-role" {
           Resource = "*"
           Condition = {
             StringEquals = {
-              "ec2:ResourceTag/karpenter.sh/discovery" = "${aws_eks_cluster.main.name}"
+              "ec2:ResourceTag/karpenter.sh/discovery" = "${var.project}-${var.env}-cluster"
             }
           }
         }
@@ -83,23 +83,23 @@ resource "aws_iam_role" "karpenter-role" {
   }
 }
 
-resource "aws_iam_instance_profile" "karpenter-instance-profile" {
-  name = "${var.project}-${var.env}-karpenter-instance-profile"
-  role = aws_iam_role.eks-worker-role.name
+resource "aws_iam_instance_profile" "karpenter" {
+  name = "${var.project}-${var.env}-karpenter"
+  role = aws_iam_role.eks-worker.name
 }
 
-resource "aws_sqs_queue" "karpenter-queue" {
+resource "aws_sqs_queue" "karpenter" {
   name                      = "${var.project}-${var.env}-karpenter"
   message_retention_seconds = 300
 }
 
-resource "aws_sqs_queue_policy" "karpenter-queue-policy" {
-  queue_url = aws_sqs_queue.karpenter-queue.url
+resource "aws_sqs_queue_policy" "karpenter" {
+  queue_url = aws_sqs_queue.karpenter.url
 
   policy = jsonencode({
     Version = "2008-10-17"
     Statement = {
-      Resource  = aws_sqs_queue.karpenter-queue.arn
+      Resource  = "${aws_sqs_queue.karpenter.arn}"
       Action    = "sqs:SendMessage"
       Principal =  {
         Service = [ "events.amazonaws.com", "sqs.amazonaws.com" ]

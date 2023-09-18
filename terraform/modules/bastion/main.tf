@@ -1,7 +1,7 @@
-resource "aws_security_group" "bastion-sg" {
-  name          = "${var.project}-${var.env}-bastion-sg"
+resource "aws_security_group" "bastion" {
+  name          = "${var.project}-${var.env}-bastion"
   vpc_id        = var.vpc_id
-  description   = "${var.project}-${var.env}-bastion-sg"
+  description   = "${var.project}-${var.env}-bastion"
 
   ingress {
     from_port   = 22
@@ -18,13 +18,12 @@ resource "aws_security_group" "bastion-sg" {
   }
 
   tags = {
-    Name  = "${var.project}-${var.env}-bastion-sg"
-    Group = "${var.project}"
+    Group = "${var.project}-${var.env}"
   }
 }
 
-resource "aws_iam_instance_profile" "bastion-profile" {
-  name = "${var.project}-${var.env}-bastion-profile"
+resource "aws_iam_instance_profile" "bastion" {
+  name = "${var.project}-${var.env}-bastion"
   role = var.master-role_name
 }
 
@@ -33,9 +32,9 @@ resource "aws_instance" "bastion" {
   instance_type           = var.bastion_instance_type
   key_name                = var.key_name
   subnet_id               = var.subnet-public-a_id
-  vpc_security_group_ids  = [ aws_security_group.bastion-sg.id ]
+  vpc_security_group_ids  = [ aws_security_group.bastion.id ]
   ebs_optimized           = true
-  iam_instance_profile    = aws_iam_instance_profile.bastion-profile.name
+  iam_instance_profile    = aws_iam_instance_profile.bastion.name
   user_data_base64        = filebase64("${path.module}/userdata.sh")
 
   credit_specification {
@@ -50,6 +49,6 @@ resource "aws_instance" "bastion" {
 
   tags = {
     Name  = "${var.project}-${var.env}-bastion"
-    Group = "${var.project}"
+    Group = "${var.project}-${var.env}"
   }
 }

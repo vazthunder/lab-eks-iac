@@ -1,27 +1,25 @@
 ### VPC
 
-resource "aws_vpc" "vpc" {
+resource "aws_vpc" "main" {
   cidr_block           = var.cidr_vpc
   enable_dns_hostnames = true
   enable_dns_support   = true
 
   tags = {
-    Name  = "${var.project}-${var.env}-vpc"
-    Group = "${var.project}"
+    Group = "${var.project}-${var.env}"
   }
 }
 
 ### Public
 
-resource "aws_subnet" "subnet-public-a" {
+resource "aws_subnet" "public-a" {
   availability_zone       = "${var.region}a"
-  vpc_id                  = aws_vpc.vpc.id
+  vpc_id                  = aws_vpc.main.id
   cidr_block              = var.cidr_public_a
   map_public_ip_on_launch = true
 
   tags = {
-    Name  = "${var.project}-${var.env}-subnet-public-a"
-    Group = "${var.project}"
+    Group = "${var.project}-${var.env}"
 
     # EKS-specific
     "kubernetes.io/cluster/${var.project}-${var.env}-cluster" = "shared"
@@ -29,15 +27,14 @@ resource "aws_subnet" "subnet-public-a" {
   }
 }
 
-resource "aws_subnet" "subnet-public-b" {
+resource "aws_subnet" "public-b" {
   availability_zone       = "${var.region}b"
-  vpc_id                  = aws_vpc.vpc.id
+  vpc_id                  = aws_vpc.main.id
   cidr_block              = var.cidr_public_b
   map_public_ip_on_launch = true
 
   tags = {
-    Name  = "${var.project}-${var.env}-subnet-public-b"
-    Group = "${var.project}"
+    Group = "${var.project}-${var.env}"
 
     # EKS-specific
     "kubernetes.io/cluster/${var.project}-${var.env}-cluster" = "shared"
@@ -45,8 +42,8 @@ resource "aws_subnet" "subnet-public-b" {
   }
 }
 
-resource "aws_route_table" "route-public" {
-  vpc_id = aws_vpc.vpc.id
+resource "aws_route_table" "public" {
+  vpc_id = aws_vpc.main.id
 
   route {
     cidr_block = var.cidr_vpc
@@ -55,37 +52,35 @@ resource "aws_route_table" "route-public" {
 
   route {
     cidr_block = "0.0.0.0/0"
-    gateway_id = aws_internet_gateway.internet-gateway.id
+    gateway_id = aws_internet_gateway.public.id
   }
 
   tags = {
-    Name  = "${var.project}-${var.env}-route-public"
-    Group = "${var.project}"
+    Group = "${var.project}-${var.env}"
   }
 }
 
 resource "aws_route_table_association" "route-public-a" {
-  subnet_id      = aws_subnet.subnet-public-a.id
-  route_table_id = aws_route_table.route-public.id
+  subnet_id      = aws_subnet.public-a.id
+  route_table_id = aws_route_table.public.id
 }
 
 resource "aws_route_table_association" "route-public-b" {
-  subnet_id      = aws_subnet.subnet-public-b.id
-  route_table_id = aws_route_table.route-public.id
+  subnet_id      = aws_subnet.public-b.id
+  route_table_id = aws_route_table.public.id
 }
 
-resource "aws_internet_gateway" "internet-gateway" {
-  vpc_id = aws_vpc.vpc.id
+resource "aws_internet_gateway" "public" {
+  vpc_id = aws_vpc.main.id
 
   tags = {
-    Name  = "${var.project}-${var.env}-internet-gateway"
-    Group = "${var.project}"
+    Group = "${var.project}-${var.env}"
   }
 }
 
-resource "aws_network_acl" "public-acl" {
-  vpc_id     = aws_vpc.vpc.id
-  subnet_ids = [aws_subnet.subnet-public-a.id, aws_subnet.subnet-public-b.id]
+resource "aws_network_acl" "public" {
+  vpc_id     = aws_vpc.main.id
+  subnet_ids = [aws_subnet.public-a.id, aws_subnet.public-b.id]
 
   egress {
     protocol   = "-1"
@@ -144,21 +139,19 @@ resource "aws_network_acl" "public-acl" {
   }
 
   tags = {
-    Name  = "${var.project}-${var.env}-public-acl"
-    Group = "${var.project}"
+    Group = "${var.project}-${var.env}"
   }
 }
 
 ### Private
 
-resource "aws_subnet" "subnet-private-a" {
+resource "aws_subnet" "private-a" {
   availability_zone = "${var.region}a"
-  vpc_id            = aws_vpc.vpc.id
+  vpc_id            = aws_vpc.main.id
   cidr_block        = var.cidr_private_a
 
   tags = {
-    Name  = "${var.project}-${var.env}-subnet-private-a"
-    Group = "${var.project}"
+    Group = "${var.project}-${var.env}"
 
     # EKS-specific
     "kubernetes.io/cluster/${var.project}-${var.env}-cluster" = "shared"
@@ -166,14 +159,13 @@ resource "aws_subnet" "subnet-private-a" {
   }
 }
 
-resource "aws_subnet" "subnet-private-b" {
+resource "aws_subnet" "private-b" {
   availability_zone = "${var.region}b"
-  vpc_id            = aws_vpc.vpc.id
+  vpc_id            = aws_vpc.main.id
   cidr_block        = var.cidr_private_b
 
   tags = {
-    Name  = "${var.project}-${var.env}-subnet-private-b"
-    Group = "${var.project}"
+    Group = "${var.project}-${var.env}"
 
     # EKS-specific
     "kubernetes.io/cluster/${var.project}-${var.env}-cluster" = "shared"
@@ -181,8 +173,8 @@ resource "aws_subnet" "subnet-private-b" {
   }
 }
 
-resource "aws_default_route_table" "route-private" {
-  default_route_table_id = aws_vpc.vpc.default_route_table_id
+resource "aws_default_route_table" "private" {
+  default_route_table_id = aws_vpc.main.default_route_table_id
 
   route {
     cidr_block = var.cidr_vpc
@@ -191,47 +183,44 @@ resource "aws_default_route_table" "route-private" {
 
   route {
     cidr_block     = "0.0.0.0/0"
-    nat_gateway_id = aws_nat_gateway.nat-gateway.id
+    nat_gateway_id = aws_nat_gateway.private.id
   }
 
   tags = {
-    Name  = "${var.project}-${var.env}-route-private"
-    Group = "${var.project}"
+    Group = "${var.project}-${var.env}"
   }
 }
 
 resource "aws_route_table_association" "route-private-a" {
-  subnet_id      = aws_subnet.subnet-private-a.id
-  route_table_id = aws_default_route_table.route-private.id
+  subnet_id      = aws_subnet.private-a.id
+  route_table_id = aws_default_route_table.private.id
 }
 
 resource "aws_route_table_association" "route-private-b" {
-  subnet_id      = aws_subnet.subnet-private-b.id
-  route_table_id = aws_default_route_table.route-private.id
+  subnet_id      = aws_subnet.private-b.id
+  route_table_id = aws_default_route_table.private.id
 }
 
-resource "aws_nat_gateway" "nat-gateway" {
-  allocation_id = aws_eip.eip.id
-  subnet_id     = aws_subnet.subnet-public-a.id
+resource "aws_nat_gateway" "private" {
+  allocation_id = aws_eip.natgw.id
+  subnet_id     = aws_subnet.public-a.id
 
   tags = {
-    Name  = "${var.project}-${var.env}-nat-gateway"
-    Group = "${var.project}"
+    Group = "${var.project}-${var.env}"
   }
 }
 
-resource "aws_eip" "eip" {
+resource "aws_eip" "natgw" {
   domain = "vpc"
 
   tags = {
-    Name  = "${var.project}-${var.env}-eip"
-    Group = "${var.project}"
+    Group = "${var.project}-${var.env}"
   }
 }
 
-resource "aws_network_acl" "private-acl" {
-  vpc_id     = aws_vpc.vpc.id
-  subnet_ids = [aws_subnet.subnet-private-a.id, aws_subnet.subnet-private-b.id]
+resource "aws_network_acl" "private" {
+  vpc_id     = aws_vpc.main.id
+  subnet_ids = [aws_subnet.private-a.id, aws_subnet.private-b.id]
 
   egress {
     protocol   = "-1"
@@ -290,7 +279,6 @@ resource "aws_network_acl" "private-acl" {
   }
 
   tags = {
-    Name  = "${var.project}-${var.env}-private-acl"
-    Group = "${var.project}"
+    Group = "${var.project}-${var.env}"
   }
 }

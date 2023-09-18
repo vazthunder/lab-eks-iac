@@ -1,4 +1,4 @@
-resource "aws_codebuild_project" "codebuild-project" {
+resource "aws_codebuild_project" "build" {
   name          = "${var.project}-${var.env}-${var.build_app_name}"
   description   = "${var.project}-${var.env}-${var.build_app_name}"
   build_timeout = var.build_timeout

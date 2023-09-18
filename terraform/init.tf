@@ -9,8 +9,8 @@ data "aws_caller_identity" "current" { }
 locals { account_id = data.aws_caller_identity.current.account_id }
 
 
-resource "aws_iam_role" "master-role" {
-  name = "${var.project}-${var.env}-eks-master-role"
+resource "aws_iam_role" "eks-master" {
+  name = "${var.project}-${var.env}-eks-master"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17",
@@ -31,7 +31,7 @@ resource "aws_iam_role" "master-role" {
           StringLike = {
             "aws:PrincipalArn" = [
               "${data.aws_caller_identity.current.arn}",
-              "arn:aws:iam::${local.account_id}:role/${var.project}-${var.env}-codebuild-role"
+              "arn:aws:iam::${local.account_id}:role/${var.project}-${var.env}-codebuild"
             ]
           }
         }
@@ -41,7 +41,7 @@ resource "aws_iam_role" "master-role" {
   })
 
   inline_policy {
-    name   = "${var.project}-${var.env}-eks-master-policy"
+    name   = "${var.project}-${var.env}-eks-master"
     policy = jsonencode({
       Version = "2012-10-17",
       Statement = [
@@ -58,7 +58,7 @@ resource "aws_iam_role" "master-role" {
         {
           Effect = "Allow",
           Action = "iam:PassRole",
-          Resource = "arn:aws:iam::${local.account_id}:role/${var.project}-${var.env}-eks-cluster-role"
+          Resource = "arn:aws:iam::${local.account_id}:role/${var.project}-${var.env}-eks-cluster"
         }
       ]
     })
@@ -69,17 +69,17 @@ provider "aws" {
   alias   = "assume-master-role"
 
   assume_role {
-    role_arn = aws_iam_role.master-role.arn
+    role_arn = aws_iam_role.eks-master.arn
   }
 }
 
 
 ### Base resources for CodeBuild
 
-resource "aws_security_group" "codebuild-sg" {
-  name          = "${var.project}-${var.env}-codebuild-sg"
+resource "aws_security_group" "codebuild" {
+  name          = "${var.project}-${var.env}-codebuild"
   vpc_id        = module.network.vpc_id
-  description   = "${var.project}-${var.env}-codebuild-sg"
+  description   = "${var.project}-${var.env}-codebuild"
 
   ingress {
     from_port   = 0
@@ -96,14 +96,12 @@ resource "aws_security_group" "codebuild-sg" {
   }
 
   tags = {
-    Name  = "${var.project}-${var.env}-codebuild-sg"
-    Group = "${var.project}"
+    Group = "${var.project}-${var.env}"
   }
 }
 
-
-resource "aws_iam_role" "codebuild-role" {
-  name = "${var.project}-${var.env}-codebuild-role"
+resource "aws_iam_role" "codebuild" {
+  name = "${var.project}-${var.env}-codebuild"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17",
@@ -117,7 +115,7 @@ resource "aws_iam_role" "codebuild-role" {
   })
 
   inline_policy {
-    name   = "${var.project}-${var.env}-codebuild-policy"
+    name   = "${var.project}-${var.env}-codebuild"
 
     policy = jsonencode({
       Version = "2012-10-17"
@@ -148,7 +146,7 @@ resource "aws_iam_role" "codebuild-role" {
         {
           Effect = "Allow"
           Action = "sts:AssumeRole"
-          Resource = "arn:aws:iam::${local.account_id}:role/${var.project}-${var.env}-eks-master-role"
+          Resource = "arn:aws:iam::${local.account_id}:role/${var.project}-${var.env}-eks-master"
         }
       ]
     })

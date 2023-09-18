@@ -24,7 +24,7 @@ module "bastion" {
   key_name              = var.key_name
   vpc_id                = module.network.vpc_id
   subnet-public-a_id    = module.network.subnet-public-a_id
-  master-role_name      = aws_iam_role.master-role.name
+  master-role_name      = aws_iam_role.eks-master.name
 }
 
 module "cluster" {
@@ -59,9 +59,9 @@ module "cluster" {
 module "repo_app" {
   source = "./modules/registry"
   
-  project        = var.project
-  env            = var.env
-  build_app_name = "app"
+  project  = var.project
+  env      = var.env
+  app_name = "app"
 }
 
 module "build_app" {
@@ -72,9 +72,9 @@ module "build_app" {
   vpc_id              = module.network.vpc_id
   subnet-private-a_id = module.network.subnet-private-a_id
   subnet-private-b_id = module.network.subnet-private-b_id
-  codebuild-sg_id     = aws_security_group.codebuild-sg.id
-  codebuild-role_arn  = aws_iam_role.codebuild-role.arn
-  master-role_arn     = aws_iam_role.master-role.arn
+  codebuild-sg_id     = aws_security_group.codebuild.id
+  codebuild-role_arn  = aws_iam_role.codebuild.arn
+  master-role_arn     = aws_iam_role.eks-master.arn
 
   build_app_name      = "app"
   build_branch        = "dev"

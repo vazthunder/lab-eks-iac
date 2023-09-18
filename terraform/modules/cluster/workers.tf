@@ -1,5 +1,5 @@
-resource "aws_iam_role" "eks-worker-role" {
-  name = "${var.project}-${var.env}-eks-worker-role"
+resource "aws_iam_role" "eks-worker" {
+  name = "${var.project}-${var.env}-eks-worker"
 
   assume_role_policy = jsonencode({
     Statement = [{
@@ -13,30 +13,30 @@ resource "aws_iam_role" "eks-worker-role" {
   })
 }
 
-resource "aws_iam_role_policy_attachment" "eks-node-policy" {
+resource "aws_iam_role_policy_attachment" "eks-worker-node" {
   policy_arn = "arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy"
-  role       = aws_iam_role.eks-worker-role.name
+  role       = aws_iam_role.eks-worker.name
 }
 
-resource "aws_iam_role_policy_attachment" "eks-cni-policy" {
+resource "aws_iam_role_policy_attachment" "eks-worker-cni" {
   policy_arn = "arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy"
-  role       = aws_iam_role.eks-worker-role.name
+  role       = aws_iam_role.eks-worker.name
 }
 
-resource "aws_iam_role_policy_attachment" "eks-ecr-policy" {
+resource "aws_iam_role_policy_attachment" "eks-worker-ecr" {
   policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
-  role       = aws_iam_role.eks-worker-role.name
+  role       = aws_iam_role.eks-worker.name
 }
 
-resource "aws_iam_role_policy_attachment" "eks-acm-policy" {
+resource "aws_iam_role_policy_attachment" "eks-worker-acm" {
   policy_arn = "arn:aws:iam::aws:policy/AWSCertificateManagerReadOnly"
-  role       = aws_iam_role.eks-worker-role.name
+  role       = aws_iam_role.eks-worker.name
 }
 
 resource "aws_eks_node_group" "worker" {
   cluster_name    = aws_eks_cluster.main.name
   node_group_name = "${var.project}-${var.env}-worker"
-  node_role_arn   = aws_iam_role.eks-worker-role.arn
+  node_role_arn   = aws_iam_role.eks-worker.arn
   subnet_ids      = [ var.subnet-private-a_id, var.subnet-private-b_id ]
   disk_size       = var.worker_storage_size
   instance_types  = [ var.worker_instance_type ]
@@ -56,15 +56,14 @@ resource "aws_eks_node_group" "worker" {
 
   # Ensure that IAM Role permissions are created before and deleted after EKS Node Group handling.
   depends_on = [
-    aws_iam_role_policy_attachment.eks-node-policy,
-    aws_iam_role_policy_attachment.eks-cni-policy,
-    aws_iam_role_policy_attachment.eks-ecr-policy,
-    aws_iam_role_policy_attachment.eks-acm-policy
+    aws_iam_role_policy_attachment.eks-worker-node,
+    aws_iam_role_policy_attachment.eks-worker-cni,
+    aws_iam_role_policy_attachment.eks-worker-ecr,
+    aws_iam_role_policy_attachment.eks-worker-acm
   ]
 
   tags = {
-    Name  = "${var.project}-${var.env}-worker"
-    Group = "${var.project}"
+    Group = "${var.project}-${var.env}"
   }
 
   lifecycle {
