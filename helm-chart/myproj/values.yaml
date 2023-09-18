@@ -7,6 +7,7 @@ app:
   tier: app
   image: ""
   imagePullPolicy: Always
+  capacityType: SPOT
   replicas: 2
   service:
     port: 80

@@ -22,6 +22,16 @@ spec:
       labels:
         app.kubernetes.io/name: "{{ .Values.project }}-{{ .Values.app.tier }}"
     spec:
+      affinity:
+        nodeAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 1
+              preference:
+                matchExpressions:
+                  - key:  eks.amazonaws.com/capacityType
+                    operator: In
+                    values:
+                     - {{ .Values.app.capacityType }}
       containers:
         - image: {{ .Values.app.image }}
           imagePullPolicy: {{ .Values.app.imagePullPolicy }}
