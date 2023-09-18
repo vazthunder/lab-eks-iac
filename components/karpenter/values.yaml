@@ -1,0 +1,18 @@
+settings:
+  aws:
+    clusterName: myproj-dev-cluster
+    clusterEndpoint: https://521709D4DE90C3757A85F45F9B334B91.gr7.us-east-2.eks.amazonaws.com
+    defaultInstanceProfile: myproj-dev-karpenter-instance-profile
+    interruptionQueueName: myproj-dev-karpenter
+serviceAccount:
+  annotations:
+    "eks.amazonaws.com/role-arn": "arn:aws:iam::615929987729:role/myproj-dev-karpenter-role"
+controller:
+  resources:
+    requests:
+      cpu: 1
+      memory: 1Gi
+    limits:
+      cpu: 1
+      memory: 1Gi
+
