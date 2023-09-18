@@ -1,5 +1,6 @@
 variable "project"             { type = string }
 variable "env"                 { type = string }
+variable "aws_account_id"      { type = string }
 variable "vpc_id"              { type = string }
 variable "subnet-private-a_id" { type = string }
 variable "subnet-private-b_id" { type = string }

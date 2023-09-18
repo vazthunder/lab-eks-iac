@@ -69,6 +69,7 @@ module "build_app" {
 
   project             = var.project
   env                 = var.env
+  aws_account_id      = data.aws_caller_identity.current.account_id
   vpc_id              = module.network.vpc_id
   subnet-private-a_id = module.network.subnet-private-a_id
   subnet-private-b_id = module.network.subnet-private-b_id
